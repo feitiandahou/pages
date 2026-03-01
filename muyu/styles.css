@@ -1,0 +1,166 @@
+:root {
+  --phase1-primary: #8b4513;
+  --phase1-secondary: #a0522d;
+  --phase2-primary: #cd7f32;
+  --phase2-secondary: #ffd700;
+  --phase3-primary: #00ffff;
+  --phase3-secondary: #ff00ff;
+  --phase4-primary: #9400d3;
+  --phase4-secondary: #4b0082;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0a0f;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#mainCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.ui-layer {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#counter {
+  bottom: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: #fff;
+}
+
+#meritCount {
+  font-size: clamp(48px, 12vw, 80px);
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd700, #ffa500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+  letter-spacing: 2px;
+}
+
+#phaseName {
+  font-size: clamp(16px, 4vw, 24px);
+  margin-top: 10px;
+  opacity: 0.8;
+  letter-spacing: 4px;
+  transition: all 0.5s ease;
+}
+
+#combo {
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(32px, 8vw, 64px);
+  font-weight: 900;
+  color: #ff4500;
+  text-shadow:
+    0 0 20px #ff4500,
+    0 0 40px #ff6347;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#combo.active {
+  opacity: 1;
+  animation: comboPulse 0.3s ease infinite;
+}
+
+@keyframes comboPulse {
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.2);
+  }
+}
+
+.float-text {
+  position: fixed;
+  font-size: clamp(20px, 5vw, 32px);
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  animation: floatUp 1.5s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-100px) scale(1.5);
+  }
+}
+
+.zen-quote {
+  position: fixed;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  font-size: clamp(18px, 4.5vw, 28px);
+  color: #e0e0e0;
+  text-align: center;
+  pointer-events: none;
+  z-index: 15;
+  opacity: 0;
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.zen-quote.show {
+  animation: zenFade 4s ease-in-out forwards;
+}
+
+@keyframes zenFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(20px);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-30px);
+  }
+}
+
+#instructions {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
