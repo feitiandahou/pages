@@ -1,0 +1,1273 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>无限进化·仿真木鱼</title>
+    <style>
+      :root {
+        --phase1-primary: #8b4513;
+        --phase1-secondary: #a0522d;
+        --phase2-primary: #cd7f32;
+        --phase2-secondary: #ffd700;
+        --phase3-primary: #00ffff;
+        --phase3-secondary: #ff00ff;
+        --phase4-primary: #9400d3;
+        --phase4-secondary: #4b0082;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: #0a0a0f;
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      #mainCanvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+
+      .ui-layer {
+        position: fixed;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      #counter {
+        bottom: 15%;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        color: #fff;
+      }
+
+      #meritCount {
+        font-size: clamp(48px, 12vw, 80px);
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffd700, #ffa500);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+        letter-spacing: 2px;
+      }
+
+      #phaseName {
+        font-size: clamp(16px, 4vw, 24px);
+        margin-top: 10px;
+        opacity: 0.8;
+        letter-spacing: 4px;
+        transition: all 0.5s ease;
+      }
+
+      #combo {
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: clamp(32px, 8vw, 64px);
+        font-weight: 900;
+        color: #ff4500;
+        text-shadow:
+          0 0 20px #ff4500,
+          0 0 40px #ff6347;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      #combo.active {
+        opacity: 1;
+        animation: comboPulse 0.3s ease infinite;
+      }
+
+      @keyframes comboPulse {
+        0%,
+        100% {
+          transform: translateX(-50%) scale(1);
+        }
+        50% {
+          transform: translateX(-50%) scale(1.2);
+        }
+      }
+
+      .float-text {
+        position: fixed;
+        font-size: clamp(20px, 5vw, 32px);
+        font-weight: bold;
+        pointer-events: none;
+        z-index: 20;
+        animation: floatUp 1.5s ease-out forwards;
+      }
+
+      @keyframes floatUp {
+        0% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-100px) scale(1.5);
+        }
+      }
+
+      .zen-quote {
+        position: fixed;
+        left: 50%;
+        top: 40%;
+        transform: translate(-50%, -50%);
+        font-size: clamp(18px, 4.5vw, 28px);
+        color: #e0e0e0;
+        text-align: center;
+        pointer-events: none;
+        z-index: 15;
+        opacity: 0;
+        white-space: nowrap;
+        text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      }
+
+      .zen-quote.show {
+        animation: zenFade 4s ease-in-out forwards;
+      }
+
+      @keyframes zenFade {
+        0% {
+          opacity: 0;
+          transform: translate(-50%, -50%) translateY(20px);
+        }
+        20% {
+          opacity: 1;
+          transform: translate(-50%, -50%) translateY(0);
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate(-50%, -50%) translateY(-30px);
+        }
+      }
+
+      #instructions {
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.5);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="mainCanvas"></canvas>
+
+    <div id="counter" class="ui-layer">
+      <div id="meritCount">0</div>
+      <div id="phaseName">初心</div>
+    </div>
+
+    <div id="combo" class="ui-layer"></div>
+
+    <div id="instructions" class="ui-layer">点击或触摸木鱼积累功德</div>
+
+    <script>
+      ;(function () {
+        "use strict"
+
+        const State = {
+          meritCount: 0,
+          phase: 1,
+          combo: 0,
+          lastHitTime: 0,
+          comboTimer: null,
+          isPressed: false,
+          springX: 0,
+          springY: 0,
+          springVx: 0,
+          springVy: 0,
+          deformation: 0,
+          rotation: 0,
+          glowIntensity: 0,
+          particles: [],
+          stars: [],
+          codeRainChars: [],
+          zenQuotes: [
+            "Debug 即是修行",
+            "404 Not Found, But Peace Found",
+            "心无 Bug 自凉",
+            "代码本无相，功德在其中",
+            "变量皆空，常量永恒",
+            "递归深处见真我",
+            "内存释放，执念亦放",
+            "算法无边，回向众生",
+            "Git Push，业力清零",
+            "编译通过，立地成佛",
+          ],
+        }
+
+        const SPRING_CONFIG = {
+          1: { stiffness: 0.15, damping: 0.85 },
+          2: { stiffness: 0.25, damping: 0.8 },
+          3: { stiffness: 0.1, damping: 0.7 },
+          4: { stiffness: 0.05, damping: 0.6 },
+        }
+
+        const canvas = document.getElementById("mainCanvas")
+        const ctx = canvas.getContext("2d")
+        const meritCountEl = document.getElementById("meritCount")
+        const phaseNameEl = document.getElementById("phaseName")
+        const comboEl = document.getElementById("combo")
+
+        let width, height, centerX, centerY, mokugyoRadius
+
+        class AudioEngine {
+          constructor() {
+            this.ctx = null
+            this.initialized = false
+          }
+
+          init() {
+            if (this.initialized) return
+            try {
+              this.ctx = new (
+                window.AudioContext || window.webkitAudioContext
+              )()
+              this.initialized = true
+            } catch (e) {
+              console.warn("Web Audio API not supported")
+            }
+          }
+
+          playWoodSound() {
+            if (!this.ctx) return
+            const now = this.ctx.currentTime
+
+            const osc = this.ctx.createOscillator()
+            const gain = this.ctx.createGain()
+            const filter = this.ctx.createBiquadFilter()
+
+            osc.type = "triangle"
+            osc.frequency.setValueAtTime(180, now)
+            osc.frequency.exponentialRampToValueAtTime(80, now + 0.15)
+
+            filter.type = "lowpass"
+            filter.frequency.setValueAtTime(800, now)
+            filter.Q.value = 1
+
+            gain.gain.setValueAtTime(0.6, now)
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3)
+
+            osc.connect(filter)
+            filter.connect(gain)
+            gain.connect(this.ctx.destination)
+
+            osc.start(now)
+            osc.stop(now + 0.3)
+          }
+
+          playBronzeSound() {
+            if (!this.ctx) return
+            const now = this.ctx.currentTime
+
+            const osc1 = this.ctx.createOscillator()
+            const osc2 = this.ctx.createOscillator()
+            const gain = this.ctx.createGain()
+            const filter = this.ctx.createBiquadFilter()
+
+            osc1.type = "square"
+            osc1.frequency.setValueAtTime(880, now)
+            osc2.type = "sine"
+            osc2.frequency.setValueAtTime(1320, now)
+
+            filter.type = "highpass"
+            filter.frequency.setValueAtTime(400, now)
+
+            gain.gain.setValueAtTime(0.3, now)
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8)
+
+            osc1.connect(filter)
+            osc2.connect(filter)
+            filter.connect(gain)
+            gain.connect(this.ctx.destination)
+
+            osc1.start(now)
+            osc1.stop(now + 0.1)
+            osc2.start(now)
+            osc2.stop(now + 0.8)
+
+            this.playReverb()
+          }
+
+          playReverb() {
+            if (!this.ctx) return
+            const now = this.ctx.currentTime
+            const convolver = this.ctx.createConvolver()
+            const rate = this.ctx.sampleRate
+            const length = rate * 1.5
+            const impulse = this.ctx.createBuffer(2, length, rate)
+
+            for (let channel = 0; channel < 2; channel++) {
+              const channelData = impulse.getChannelData(channel)
+              for (let i = 0; i < length; i++) {
+                channelData[i] =
+                  (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2)
+              }
+            }
+
+            convolver.buffer = impulse
+            const gain = this.ctx.createGain()
+            gain.gain.setValueAtTime(0.15, now)
+
+            const noise = this.ctx.createOscillator()
+            noise.frequency.setValueAtTime(440, now)
+            const noiseGain = this.ctx.createGain()
+            noiseGain.gain.setValueAtTime(0.05, now)
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1)
+
+            noise.connect(noiseGain)
+            noiseGain.connect(convolver)
+            convolver.connect(gain)
+            gain.connect(this.ctx.destination)
+
+            noise.start(now)
+            noise.stop(now + 0.1)
+          }
+
+          playCyberSound() {
+            if (!this.ctx) return
+            const now = this.ctx.currentTime
+
+            const carrier = this.ctx.createOscillator()
+            const modulator = this.ctx.createOscillator()
+            const modGain = this.ctx.createGain()
+            const gain = this.ctx.createGain()
+
+            carrier.type = "sine"
+            carrier.frequency.setValueAtTime(440, now)
+
+            modulator.type = "sine"
+            modulator.frequency.setValueAtTime(110, now)
+
+            modGain.gain.setValueAtTime(200, now)
+
+            gain.gain.setValueAtTime(0.4, now)
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5)
+
+            modulator.connect(modGain)
+            modGain.connect(carrier.frequency)
+            carrier.connect(gain)
+            gain.connect(this.ctx.destination)
+
+            carrier.start(now)
+            modulator.start(now)
+            carrier.stop(now + 0.5)
+            modulator.stop(now + 0.5)
+          }
+
+          playCosmicSound() {
+            if (!this.ctx) return
+            const now = this.ctx.currentTime
+
+            const frequencies = [65.41, 82.41, 98, 130.81]
+            const masterGain = this.ctx.createGain()
+            masterGain.gain.setValueAtTime(0.2, now)
+            masterGain.gain.exponentialRampToValueAtTime(0.01, now + 2)
+
+            frequencies.forEach((freq, i) => {
+              const osc = this.ctx.createOscillator()
+              const gain = this.ctx.createGain()
+              const lfo = this.ctx.createOscillator()
+              const lfoGain = this.ctx.createGain()
+
+              osc.type = "sine"
+              osc.frequency.setValueAtTime(freq, now)
+
+              lfo.type = "sine"
+              lfo.frequency.setValueAtTime(0.5 + i * 0.2, now)
+
+              lfoGain.gain.setValueAtTime(0.1, now)
+
+              gain.gain.setValueAtTime(0.15 / (i + 1), now)
+
+              lfo.connect(lfoGain)
+              lfoGain.connect(gain.gain)
+              osc.connect(gain)
+              gain.connect(masterGain)
+
+              osc.start(now)
+              lfo.start(now)
+              osc.stop(now + 2)
+              lfo.stop(now + 2)
+            })
+
+            masterGain.connect(this.ctx.destination)
+          }
+
+          play(phase) {
+            this.init()
+            switch (phase) {
+              case 1:
+                this.playWoodSound()
+                break
+              case 2:
+                this.playBronzeSound()
+                break
+              case 3:
+                this.playCyberSound()
+                break
+              case 4:
+                this.playCosmicSound()
+                break
+            }
+          }
+        }
+
+        const audioEngine = new AudioEngine()
+
+        class Particle {
+          constructor(x, y, type) {
+            this.x = x
+            this.y = y
+            this.type = type
+            this.life = 1
+            this.maxLife = 1
+
+            switch (type) {
+              case "wood":
+                this.vx = (Math.random() - 0.5) * 4
+                this.vy = (Math.random() - 0.5) * 4 - 2
+                this.gravity = 0.15
+                this.size = Math.random() * 4 + 2
+                this.color = `hsl(${25 + Math.random() * 15}, ${50 + Math.random() * 30}%, ${30 + Math.random() * 20}%)`
+                this.decay = 0.02
+                break
+              case "bronze":
+                const angle = Math.random() * Math.PI * 2
+                const speed = Math.random() * 8 + 4
+                this.vx = Math.cos(angle) * speed
+                this.vy = Math.sin(angle) * speed
+                this.gravity = 0.1
+                this.size = Math.random() * 3 + 1
+                this.color = `hsl(${40 + Math.random() * 20}, 100%, ${50 + Math.random() * 30}%)`
+                this.decay = 0.025
+                break
+              case "cyber":
+                this.vx = (Math.random() - 0.5) * 2
+                this.vy = -Math.random() * 4 - 2
+                this.gravity = -0.02
+                this.size = 12
+                this.char = Math.random() > 0.5 ? "0" : "1"
+                this.color = Math.random() > 0.5 ? "#00FFFF" : "#FF00FF"
+                this.decay = 0.015
+                break
+              case "cosmic":
+                const dx = centerX - x
+                const dy = centerY - y
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1
+                this.vx = (dx / dist) * (Math.random() * 3 + 2)
+                this.vy = (dy / dist) * (Math.random() * 3 + 2)
+                this.gravity = 0
+                this.size = Math.random() * 3 + 1
+                this.color = `hsl(${Math.random() * 360}, 80%, 70%)`
+                this.decay = 0.02
+                break
+            }
+          }
+
+          update() {
+            this.x += this.vx
+            this.y += this.vy
+            this.vy += this.gravity
+            this.life -= this.decay
+
+            if (this.type === "cosmic") {
+              const dx = centerX - this.x
+              const dy = centerY - this.y
+              const dist = Math.sqrt(dx * dx + dy * dy) || 1
+              this.vx += (dx / dist) * 0.5
+              this.vy += (dy / dist) * 0.5
+            }
+
+            return this.life > 0
+          }
+
+          draw(ctx) {
+            ctx.save()
+            ctx.globalAlpha = this.life
+
+            if (this.type === "cyber") {
+              ctx.font = `${this.size}px monospace`
+              ctx.fillStyle = this.color
+              ctx.shadowColor = this.color
+              ctx.shadowBlur = 10
+              ctx.fillText(this.char, this.x, this.y)
+            } else {
+              ctx.fillStyle = this.color
+              if (this.type === "bronze") {
+                ctx.shadowColor = this.color
+                ctx.shadowBlur = 8
+              }
+              ctx.beginPath()
+              ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2)
+              ctx.fill()
+            }
+
+            ctx.restore()
+          }
+        }
+
+        function initCanvas() {
+          width = canvas.width = window.innerWidth
+          height = canvas.height = window.innerHeight
+          centerX = width / 2
+          centerY = height / 2
+          mokugyoRadius = Math.min(width, height) * 0.25
+
+          initStars()
+        }
+
+        function initStars() {
+          State.stars = []
+          for (let i = 0; i < 200; i++) {
+            State.stars.push({
+              x: Math.random() * width,
+              y: Math.random() * height,
+              size: Math.random() * 2 + 0.5,
+              brightness: Math.random(),
+              speed: Math.random() * 0.02 + 0.005,
+            })
+          }
+        }
+
+        function getPhase(count) {
+          if (count < 100) return 1
+          if (count < 500) return 2
+          if (count < 1000) return 3
+          return 4
+        }
+
+        function getPhaseName(phase) {
+          const names = ["", "初心", "青铜", "赛博", "宇宙"]
+          return names[phase]
+        }
+
+        function getPhaseColor(phase) {
+          const colors = [
+            "",
+            {
+              primary: "#8B4513",
+              secondary: "#A0522D",
+              glow: "rgba(139, 69, 19, 0.5)",
+            },
+            {
+              primary: "#CD7F32",
+              secondary: "#FFD700",
+              glow: "rgba(255, 215, 0, 0.5)",
+            },
+            {
+              primary: "#00FFFF",
+              secondary: "#FF00FF",
+              glow: "rgba(0, 255, 255, 0.5)",
+            },
+            {
+              primary: "#9400D3",
+              secondary: "#4B0082",
+              glow: "rgba(148, 0, 211, 0.5)",
+            },
+          ]
+          return colors[phase]
+        }
+
+        function drawBackground() {
+          const gradient = ctx.createRadialGradient(
+            centerX,
+            centerY,
+            0,
+            centerX,
+            centerY,
+            Math.max(width, height),
+          )
+
+          if (State.phase === 4) {
+            gradient.addColorStop(0, "#1a0033")
+            gradient.addColorStop(0.5, "#0d001a")
+            gradient.addColorStop(1, "#000000")
+          } else {
+            gradient.addColorStop(0, "#0a0a1a")
+            gradient.addColorStop(0.5, "#050510")
+            gradient.addColorStop(1, "#000005")
+          }
+
+          ctx.fillStyle = gradient
+          ctx.fillRect(0, 0, width, height)
+
+          State.stars.forEach((star) => {
+            star.brightness += star.speed
+            const alpha = (Math.sin(star.brightness) + 1) / 2
+
+            ctx.beginPath()
+            ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.8})`
+            ctx.fill()
+          })
+
+          if (State.phase >= 3) {
+            drawNebula()
+          }
+        }
+
+        function drawNebula() {
+          const time = Date.now() * 0.001
+          ctx.save()
+          ctx.globalAlpha = 0.1
+
+          for (let i = 0; i < 3; i++) {
+            const x = centerX + Math.sin(time + i * 2) * 100
+            const y = centerY + Math.cos(time + i * 2) * 100
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 200)
+
+            if (State.phase === 3) {
+              gradient.addColorStop(
+                0,
+                i % 2 === 0
+                  ? "rgba(0, 255, 255, 0.3)"
+                  : "rgba(255, 0, 255, 0.3)",
+              )
+            } else {
+              gradient.addColorStop(
+                0,
+                `hsla(${(time * 50 + i * 120) % 360}, 80%, 50%, 0.3)`,
+              )
+            }
+            gradient.addColorStop(1, "transparent")
+
+            ctx.fillStyle = gradient
+            ctx.fillRect(0, 0, width, height)
+          }
+
+          ctx.restore()
+        }
+
+        function drawMokugyo() {
+          ctx.save()
+          ctx.translate(centerX, centerY)
+
+          const config = SPRING_CONFIG[State.phase]
+          State.springVx += -State.springX * config.stiffness
+          State.springVy += -State.springY * config.stiffness
+          State.springVx *= config.damping
+          State.springVy *= config.damping
+          State.springX += State.springVx
+          State.springY += State.springVy
+
+          const scaleX = 1 + State.springX * 0.1
+          const scaleY = 1 + State.springY * 0.1
+
+          ctx.scale(scaleX, scaleY)
+
+          switch (State.phase) {
+            case 1:
+              drawWoodMokugyo()
+              break
+            case 2:
+              drawBronzeMokugyo()
+              break
+            case 3:
+              drawCyberMokugyo()
+              break
+            case 4:
+              drawCosmicMokugyo()
+              break
+          }
+
+          ctx.restore()
+        }
+
+        function drawWoodMokugyo() {
+          const r = mokugyoRadius
+
+          ctx.save()
+
+          const woodGradient = ctx.createRadialGradient(
+            -r * 0.3,
+            -r * 0.3,
+            0,
+            0,
+            0,
+            r * 1.2,
+          )
+          woodGradient.addColorStop(0, "#A0522D")
+          woodGradient.addColorStop(0.3, "#8B4513")
+          woodGradient.addColorStop(0.7, "#654321")
+          woodGradient.addColorStop(1, "#3D2314")
+
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2)
+          ctx.fillStyle = woodGradient
+          ctx.fill()
+
+          drawWoodGrain(r)
+
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2)
+          ctx.strokeStyle = "rgba(60, 30, 15, 0.8)"
+          ctx.lineWidth = 3
+          ctx.stroke()
+
+          const hollowGradient = ctx.createRadialGradient(
+            0,
+            -r * 0.1,
+            0,
+            0,
+            -r * 0.1,
+            r * 0.4,
+          )
+          hollowGradient.addColorStop(0, "#2D1810")
+          hollowGradient.addColorStop(0.5, "#3D2314")
+          hollowGradient.addColorStop(1, "#4A2A1A")
+
+          ctx.beginPath()
+          ctx.ellipse(0, -r * 0.1, r * 0.35, r * 0.25, 0, 0, Math.PI * 2)
+          ctx.fillStyle = hollowGradient
+          ctx.fill()
+          ctx.strokeStyle = "rgba(50, 25, 12, 0.9)"
+          ctx.lineWidth = 2
+          ctx.stroke()
+
+          ctx.restore()
+        }
+
+        function drawWoodGrain(r) {
+          ctx.save()
+          ctx.clip()
+
+          for (let i = 0; i < 15; i++) {
+            const y = -r * 0.85 + i * ((r * 1.7) / 15)
+            const wave = Math.sin(i * 0.5) * 10
+
+            ctx.beginPath()
+            ctx.moveTo(-r, y + wave)
+
+            for (let x = -r; x <= r; x += 20) {
+              const waveY = y + Math.sin((x + i * 20) * 0.05) * 5 + wave
+              ctx.lineTo(x, waveY)
+            }
+
+            ctx.strokeStyle = `rgba(60, 30, 15, ${0.1 + Math.random() * 0.1})`
+            ctx.lineWidth = 1 + Math.random()
+            ctx.stroke()
+          }
+
+          ctx.restore()
+        }
+
+        function drawBronzeMokugyo() {
+          const r = mokugyoRadius
+          const time = Date.now() * 0.001
+
+          ctx.save()
+
+          const glowIntensity = Math.sin(time * 2) * 0.2 + 0.3
+          ctx.shadowColor = "#FFD700"
+          ctx.shadowBlur = 30 * glowIntensity + State.glowIntensity * 50
+
+          const bronzeGradient = ctx.createRadialGradient(
+            -r * 0.3,
+            -r * 0.3,
+            0,
+            0,
+            0,
+            r * 1.2,
+          )
+          bronzeGradient.addColorStop(0, "#E8C87A")
+          bronzeGradient.addColorStop(0.3, "#CD7F32")
+          bronzeGradient.addColorStop(0.6, "#8B5A2B")
+          bronzeGradient.addColorStop(1, "#5C4033")
+
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2)
+          ctx.fillStyle = bronzeGradient
+          ctx.fill()
+
+          drawBronzePatina(r)
+          drawInscriptions(r)
+
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2)
+          ctx.strokeStyle = "#FFD700"
+          ctx.lineWidth = 3
+          ctx.stroke()
+
+          const hollowGradient = ctx.createRadialGradient(
+            0,
+            -r * 0.1,
+            0,
+            0,
+            -r * 0.1,
+            r * 0.4,
+          )
+          hollowGradient.addColorStop(0, "#2A1F14")
+          hollowGradient.addColorStop(0.5, "#3D2B1F")
+          hollowGradient.addColorStop(1, "#5C4033")
+
+          ctx.shadowBlur = 0
+          ctx.beginPath()
+          ctx.ellipse(0, -r * 0.1, r * 0.35, r * 0.25, 0, 0, Math.PI * 2)
+          ctx.fillStyle = hollowGradient
+          ctx.fill()
+          ctx.strokeStyle = "#8B5A2B"
+          ctx.lineWidth = 2
+          ctx.stroke()
+
+          ctx.restore()
+        }
+
+        function drawBronzePatina(r) {
+          ctx.save()
+
+          const patinaSpots = [
+            { x: r * 0.5, y: r * 0.3, size: r * 0.2 },
+            { x: -r * 0.4, y: -r * 0.2, size: r * 0.15 },
+            { x: r * 0.2, y: -r * 0.4, size: r * 0.12 },
+          ]
+
+          patinaSpots.forEach((spot) => {
+            const gradient = ctx.createRadialGradient(
+              spot.x,
+              spot.y,
+              0,
+              spot.x,
+              spot.y,
+              spot.size,
+            )
+            gradient.addColorStop(0, "rgba(0, 128, 128, 0.3)")
+            gradient.addColorStop(1, "transparent")
+
+            ctx.fillStyle = gradient
+            ctx.beginPath()
+            ctx.arc(spot.x, spot.y, spot.size, 0, Math.PI * 2)
+            ctx.fill()
+          })
+
+          ctx.restore()
+        }
+
+        function drawInscriptions(r) {
+          ctx.save()
+          ctx.font = `${r * 0.12}px serif`
+          ctx.fillStyle = "rgba(255, 215, 0, 0.6)"
+          ctx.textAlign = "center"
+          ctx.textBaseline = "middle"
+
+          const chars = ["福", "德", "禅", "心"]
+          const angleOffset = Math.PI * 0.15
+
+          chars.forEach((char, i) => {
+            const angle =
+              (i / chars.length) * Math.PI * 2 - Math.PI / 2 + angleOffset
+            const x = Math.cos(angle) * r * 0.7
+            const y = Math.sin(angle) * r * 0.55
+
+            ctx.save()
+            ctx.translate(x, y)
+            ctx.rotate(angle + Math.PI / 2)
+            ctx.fillText(char, 0, 0)
+            ctx.restore()
+          })
+
+          ctx.restore()
+        }
+
+        function drawCyberMokugyo() {
+          const r = mokugyoRadius
+          const time = Date.now() * 0.001
+
+          ctx.save()
+
+          ctx.shadowColor = "#00FFFF"
+          ctx.shadowBlur = 20 + State.glowIntensity * 30
+
+          ctx.strokeStyle = "#00FFFF"
+          ctx.lineWidth = 2
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r, r * 0.85, 0, 0, Math.PI * 2)
+          ctx.stroke()
+
+          ctx.strokeStyle = "#FF00FF"
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.ellipse(0, 0, r * 0.95, r * 0.8, 0, 0, Math.PI * 2)
+          ctx.stroke()
+
+          drawCyberGrid(r, time)
+          drawDataFlow(r, time)
+
+          ctx.shadowBlur = 0
+          ctx.strokeStyle = "#00FFFF"
+          ctx.lineWidth = 2
+          ctx.beginPath()
+          ctx.ellipse(0, -r * 0.1, r * 0.35, r * 0.25, 0, 0, Math.PI * 2)
+          ctx.stroke()
+
+          ctx.strokeStyle = "#FF00FF"
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.ellipse(0, -r * 0.1, r * 0.3, r * 0.2, 0, 0, Math.PI * 2)
+          ctx.stroke()
+
+          ctx.fillStyle = "rgba(0, 255, 255, 0.1)"
+          ctx.beginPath()
+          ctx.ellipse(0, -r * 0.1, r * 0.25, r * 0.15, 0, 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.restore()
+        }
+
+        function drawCyberGrid(r, time) {
+          ctx.save()
+
+          const segments = 24
+          ctx.strokeStyle = "rgba(0, 255, 255, 0.3)"
+          ctx.lineWidth = 0.5
+
+          for (let i = 0; i < segments; i++) {
+            const angle = (i / segments) * Math.PI * 2
+            const x1 = Math.cos(angle) * r * 0.3
+            const y1 = Math.sin(angle) * r * 0.25
+            const x2 = Math.cos(angle) * r
+            const y2 = Math.sin(angle) * r * 0.85
+
+            ctx.beginPath()
+            ctx.moveTo(x1, y1)
+            ctx.lineTo(x2, y2)
+            ctx.stroke()
+          }
+
+          for (let i = 1; i < 5; i++) {
+            const ratio = i / 5
+            ctx.beginPath()
+            ctx.ellipse(0, 0, r * ratio, r * 0.85 * ratio, 0, 0, Math.PI * 2)
+            ctx.stroke()
+          }
+
+          ctx.restore()
+        }
+
+        function drawDataFlow(r, time) {
+          ctx.save()
+
+          const flowCount = 8
+          for (let i = 0; i < flowCount; i++) {
+            const baseAngle = (i / flowCount) * Math.PI * 2
+            const flowProgress = (time * 0.5 + i * 0.2) % 1
+
+            const x = Math.cos(baseAngle) * r * flowProgress
+            const y = Math.sin(baseAngle) * r * 0.85 * flowProgress
+
+            const gradient = ctx.createRadialGradient(x, y, 0, x, y, 15)
+            gradient.addColorStop(
+              0,
+              i % 2 === 0 ? "rgba(0, 255, 255, 0.8)" : "rgba(255, 0, 255, 0.8)",
+            )
+            gradient.addColorStop(1, "transparent")
+
+            ctx.fillStyle = gradient
+            ctx.beginPath()
+            ctx.arc(x, y, 15, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          ctx.restore()
+        }
+
+        function drawCosmicMokugyo() {
+          const r = mokugyoRadius
+          const time = Date.now() * 0.001
+
+          ctx.save()
+
+          State.rotation += 0.01
+
+          drawBlackHole(r, time)
+          drawAccretionDisk(r, time)
+          drawGravitationalLensing(r, time)
+
+          ctx.restore()
+        }
+
+        function drawBlackHole(r, time) {
+          const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.4)
+          gradient.addColorStop(0, "#000000")
+          gradient.addColorStop(0.7, "#0a001a")
+          gradient.addColorStop(1, "transparent")
+
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2)
+          ctx.fill()
+
+          ctx.fillStyle = "#000000"
+          ctx.beginPath()
+          ctx.arc(0, 0, r * 0.25, 0, Math.PI * 2)
+          ctx.fill()
+        }
+
+        function drawAccretionDisk(r, time) {
+          ctx.save()
+
+          for (let ring = 0; ring < 3; ring++) {
+            const ringRadius = r * (0.5 + ring * 0.15)
+            const segments = 60
+
+            ctx.beginPath()
+            for (let i = 0; i <= segments; i++) {
+              const angle =
+                (i / segments) * Math.PI * 2 + State.rotation * (1 + ring * 0.3)
+              const wobble = Math.sin(angle * 3 + time * 2) * 5
+              const x = Math.cos(angle) * (ringRadius + wobble)
+              const y = Math.sin(angle) * (ringRadius * 0.4 + wobble * 0.4)
+
+              if (i === 0) ctx.moveTo(x, y)
+              else ctx.lineTo(x, y)
+            }
+            ctx.closePath()
+
+            const hue = (time * 30 + ring * 40) % 360
+            ctx.strokeStyle = `hsla(${hue}, 80%, 60%, ${0.8 - ring * 0.2})`
+            ctx.lineWidth = 3 - ring * 0.5
+            ctx.shadowColor = `hsl(${hue}, 80%, 60%)`
+            ctx.shadowBlur = 20
+            ctx.stroke()
+          }
+
+          ctx.restore()
+        }
+
+        function drawGravitationalLensing(r, time) {
+          ctx.save()
+
+          const starCount = 30
+          for (let i = 0; i < starCount; i++) {
+            const angle = (i / starCount) * Math.PI * 2 + time * 0.1
+            const dist = r * (0.8 + Math.sin(time + i) * 0.2)
+
+            const x = Math.cos(angle) * dist
+            const y = Math.sin(angle) * dist * 0.6
+
+            const brightness = (Math.sin(time * 3 + i * 2) + 1) / 2
+
+            ctx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.8})`
+            ctx.beginPath()
+            ctx.arc(x, y, 1 + brightness * 2, 0, Math.PI * 2)
+            ctx.fill()
+          }
+
+          ctx.restore()
+        }
+
+        function spawnParticles(x, y, count) {
+          const types = ["", "wood", "bronze", "cyber", "cosmic"]
+          const type = types[State.phase]
+
+          for (let i = 0; i < count; i++) {
+            State.particles.push(new Particle(x, y, type))
+          }
+        }
+
+        function updateParticles() {
+          State.particles = State.particles.filter((p) => p.update())
+        }
+
+        function drawParticles() {
+          State.particles.forEach((p) => p.draw(ctx))
+        }
+
+        function createFloatText(x, y, text) {
+          const el = document.createElement("div")
+          el.className = "float-text"
+          el.textContent = text
+          el.style.left = x + "px"
+          el.style.top = y + "px"
+
+          const colors = ["", "#8B4513", "#FFD700", "#00FFFF", "#9400D3"]
+          el.style.color = colors[State.phase]
+          el.style.textShadow = `0 0 10px ${colors[State.phase]}`
+
+          document.body.appendChild(el)
+
+          setTimeout(() => el.remove(), 1500)
+        }
+
+        function showZenQuote() {
+          const existing = document.querySelector(".zen-quote")
+          if (existing) existing.remove()
+
+          const quote =
+            State.zenQuotes[Math.floor(Math.random() * State.zenQuotes.length)]
+          const el = document.createElement("div")
+          el.className = "zen-quote"
+          el.textContent = quote
+          document.body.appendChild(el)
+
+          requestAnimationFrame(() => el.classList.add("show"))
+
+          setTimeout(() => el.remove(), 4000)
+        }
+
+        function updateCounter() {
+          meritCountEl.textContent = State.meritCount
+          phaseNameEl.textContent = getPhaseName(State.phase)
+
+          const colors = ["", "#8B4513", "#FFD700", "#00FFFF", "#9400D3"]
+          const gradient = `linear-gradient(135deg, ${colors[State.phase]}, ${colors[State.phase]}88)`
+          meritCountEl.style.background = gradient
+          meritCountEl.style.webkitBackgroundClip = "text"
+          meritCountEl.style.backgroundClip = "text"
+        }
+
+        function triggerCombo(count) {
+          comboEl.textContent = `COMBO x${count}`
+          comboEl.classList.add("active")
+
+          clearTimeout(State.comboTimer)
+          State.comboTimer = setTimeout(() => {
+            comboEl.classList.remove("active")
+          }, 1000)
+        }
+
+        function handleHit(x, y) {
+          audioEngine.init()
+
+          State.meritCount++
+          const newPhase = getPhase(State.meritCount)
+
+          if (newPhase !== State.phase) {
+            State.phase = newPhase
+            updateCounter()
+          }
+
+          const now = Date.now()
+          if (now - State.lastHitTime < 200) {
+            State.combo++
+            if (State.combo >= 5) {
+              triggerCombo(State.combo)
+            }
+          } else {
+            State.combo = 1
+          }
+          State.lastHitTime = now
+
+          State.springVx += 0.5
+          State.springVy += 0.3
+          State.glowIntensity = 1
+
+          audioEngine.play(State.phase)
+
+          const particleCount =
+            State.phase === 4 ? 30 : State.phase === 3 ? 20 : 15
+          spawnParticles(centerX, centerY, particleCount)
+
+          createFloatText(
+            centerX + (Math.random() - 0.5) * 100,
+            centerY - mokugyoRadius,
+            State.combo > 5 ? `+${State.combo}` : "+1",
+          )
+
+          if (State.meritCount % 50 === 0) {
+            showZenQuote()
+          }
+
+          updateCounter()
+
+          if (navigator.vibrate) {
+            const patterns = ["", [30], [80], [], [150]]
+            if (patterns[State.phase]) {
+              navigator.vibrate(patterns[State.phase])
+            }
+          }
+        }
+
+        function handleInput(e) {
+          e.preventDefault()
+
+          let x, y
+          if (e.touches) {
+            x = e.touches[0].clientX
+            y = e.touches[0].clientY
+          } else {
+            x = e.clientX
+            y = e.clientY
+          }
+
+          const dx = x - centerX
+          const dy = y - centerY
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < mokugyoRadius * 1.2) {
+            handleHit(x, y)
+          }
+        }
+
+        function setupEventListeners() {
+          canvas.addEventListener("mousedown", handleInput)
+          canvas.addEventListener("touchstart", handleInput, { passive: false })
+
+          document.addEventListener("keydown", (e) => {
+            if (e.code === "Space") {
+              e.preventDefault()
+              handleHit(centerX, centerY)
+            }
+          })
+
+          window.addEventListener("resize", () => {
+            initCanvas()
+          })
+        }
+
+        function gameLoop() {
+          ctx.clearRect(0, 0, width, height)
+
+          drawBackground()
+          drawMokugyo()
+          updateParticles()
+          drawParticles()
+
+          State.glowIntensity *= 0.95
+
+          requestAnimationFrame(gameLoop)
+        }
+
+        function init() {
+          initCanvas()
+          setupEventListeners()
+          updateCounter()
+          gameLoop()
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init)
+        } else {
+          init()
+        }
+      })()
+    </script>
+  </body>
+</html>
