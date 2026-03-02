@@ -1268,13 +1268,6 @@
     }
 
     updateCounter()
-
-    if (navigator.vibrate) {
-      const patterns = ["", [30], [80], [], [150]]
-      if (patterns[State.phase]) {
-        navigator.vibrate(patterns[State.phase])
-      }
-    }
   }
 
   function handleInput(e) {
