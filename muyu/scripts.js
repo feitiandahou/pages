@@ -29,6 +29,7 @@
     particles: [],
     stars: [],
     codeRainChars: [],
+    phaseTransitionIntensity: 0,
     zenQuotes: [
       "Debug 即是修行",
       "404 Not Found, But Peace Found",
@@ -120,8 +121,8 @@
       filter.type = "highpass"
       filter.frequency.setValueAtTime(400, now)
 
-      gain.gain.setValueAtTime(0.3, now)
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.8)
+      gain.gain.setValueAtTime(0.10, now)
+      gain.gain.exponentialRampToValueAtTime(0.005, now + 0.8)
 
       osc1.connect(filter)
       osc2.connect(filter)
@@ -533,7 +534,27 @@
   function drawBackground() {
     const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.max(width, height))
 
-    if (State.phase === 5) {
+    if (State.phase === 1) {
+      // 初心形态：温暖的棕色调
+      gradient.addColorStop(0, "#2a1a0f")
+      gradient.addColorStop(0.5, "#1a100a")
+      gradient.addColorStop(1, "#0a0505")
+    } else if (State.phase === 2) {
+      // 青铜形态：金色光芒
+      gradient.addColorStop(0, "#2a1f10")
+      gradient.addColorStop(0.5, "#1a1010")
+      gradient.addColorStop(1, "#0a0505")
+    } else if (State.phase === 3) {
+      // 赛博形态：青色光芒
+      gradient.addColorStop(0, "#0a1a2a")
+      gradient.addColorStop(0.5, "#0a0f1a")
+      gradient.addColorStop(1, "#000510")
+    } else if (State.phase === 4) {
+      // 宇宙形态：紫色光芒
+      gradient.addColorStop(0, "#1a0033")
+      gradient.addColorStop(0.5, "#0d001a")
+      gradient.addColorStop(1, "#000000")
+    } else if (State.phase === 5) {
       // 太阳形态：明亮的天空背景
       gradient.addColorStop(0, "#FFF5E6")
       gradient.addColorStop(0.5, "#FFE5B4")
@@ -544,10 +565,6 @@
       gradient.addColorStop(0.3, "#4B0082")
       gradient.addColorStop(0.6, "#00BFFF")
       gradient.addColorStop(1, "#000000")
-    } else if (State.phase === 4) {
-      gradient.addColorStop(0, "#1a0033")
-      gradient.addColorStop(0.5, "#0d001a")
-      gradient.addColorStop(1, "#000000")
     } else {
       gradient.addColorStop(0, "#0a0a1a")
       gradient.addColorStop(0.5, "#050510")
@@ -556,6 +573,19 @@
 
     ctx.fillStyle = gradient
     ctx.fillRect(0, 0, width, height)
+
+    // 绘制阶段特定的背景效果
+    if (State.phase === 1) {
+      drawWoodBackground()
+    } else if (State.phase === 2) {
+      drawBronzeBackground()
+    } else if (State.phase === 3) {
+      drawCyberBackground()
+    } else if (State.phase === 5) {
+      drawSunBackground()
+    } else if (State.phase === 6) {
+      drawSourceBackground()
+    }
 
     State.stars.forEach((star) => {
       star.brightness += star.speed
@@ -567,6 +597,12 @@
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.3})`
         ctx.fill()
+      } else if (State.phase === 1) {
+        // 初心形态：较暗的星星
+        ctx.beginPath()
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`
+        ctx.fill()
       } else {
         ctx.beginPath()
         ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2)
@@ -575,30 +611,184 @@
       }
     })
 
-    if (State.phase >= 3 && State.phase !== 5) {
+    if (State.phase >= 2) {
       drawNebula()
     }
+  }
+
+  function drawWoodBackground() {
+    // 初心阶段的纹理背景效果
+    ctx.save()
+    ctx.globalAlpha = 0.1
+
+    const time = Date.now() * 0.0001
+    
+    // 绘制木纹效果
+    for (let i = 0; i < 30; i++) {
+      const y = i * (height / 30)
+      const wave = Math.sin((time + i * 0.1) * 2) * 20
+      
+      const gradient = ctx.createLinearGradient(0, y, width, y + 100)
+      gradient.addColorStop(0, "rgba(160, 82, 45, 0.3)")
+      gradient.addColorStop(0.5, "rgba(139, 69, 19, 0.1)")
+      gradient.addColorStop(1, "transparent")
+      
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, y + wave, width, 20)
+    }
+    
+    ctx.restore()
+  }
+
+  function drawBronzeBackground() {
+    // 青铜阶段的金色光辉效果
+    ctx.save()
+    ctx.globalAlpha = 0.15
+    
+    const time = Date.now() * 0.0005
+    
+    // 多个金色光点
+    for (let i = 0; i < 5; i++) {
+      const x = centerX + Math.sin(time + i * 1.2) * (width * 0.3)
+      const y = centerY + Math.cos(time * 0.8 + i * 1.5) * (height * 0.3)
+      
+      const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, 300)
+      glowGradient.addColorStop(0, "rgba(255, 215, 0, 0.4)")
+      glowGradient.addColorStop(0.5, "rgba(255, 165, 0, 0.1)")
+      glowGradient.addColorStop(1, "transparent")
+      
+      ctx.fillStyle = glowGradient
+      ctx.fillRect(0, 0, width, height)
+    }
+    
+    ctx.restore()
+  }
+
+  function drawCyberBackground() {
+    // 赛博阶段的数据流效果
+    ctx.save()
+    ctx.globalAlpha = 0.08
+    
+    const time = Date.now() * 0.001
+    ctx.strokeStyle = "rgba(0, 255, 255, 0.3)"
+    ctx.lineWidth = 1
+    
+    // 竖向数据流
+    for (let i = 0; i < 10; i++) {
+      const x = (i / 10) * width
+      const offset = (time * 50) % height
+      
+      ctx.beginPath()
+      ctx.moveTo(x, -offset)
+      ctx.lineTo(x, height - offset)
+      ctx.stroke()
+    }
+    
+    ctx.restore()
+  }
+
+  function drawSunBackground() {
+    // 太阳阶段的光线效果
+    ctx.save()
+    ctx.globalAlpha = 0.2
+    
+    const time = Date.now() * 0.001
+    
+    // 放射光线
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2 + time * 0.3
+      const gradient = ctx.createLinearGradient(
+        centerX, centerY,
+        centerX + Math.cos(angle) * width,
+        centerY + Math.sin(angle) * height
+      )
+      
+      gradient.addColorStop(0, "rgba(255, 215, 0, 0.4)")
+      gradient.addColorStop(1, "transparent")
+      
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, width, height)
+    }
+    
+    ctx.restore()
+  }
+
+  function drawSourceBackground() {
+    // 创世阶段的能量爆发效果
+    ctx.save()
+    ctx.globalAlpha = 0.1
+    
+    const time = Date.now() * 0.0005
+    
+    // 扩散的能量波
+    for (let i = 0; i < 5; i++) {
+      const wave = (time * 2 + i * 0.4) % 1
+      const baseRadius = wave * Math.max(width, height) * 0.5 + 50
+      const startRadius = Math.max(5, baseRadius - 50)
+      const endRadius = baseRadius + 50
+      
+      const gradient = ctx.createRadialGradient(centerX, centerY, startRadius, centerX, centerY, endRadius)
+      gradient.addColorStop(0, "rgba(255, 215, 0, 0.3)")
+      gradient.addColorStop(0.5, `hsla(${(time * 100 + i * 72) % 360}, 100%, 60%, 0.2)`)
+      gradient.addColorStop(1, "transparent")
+      
+      ctx.fillStyle = gradient
+      ctx.fillRect(0, 0, width, height)
+    }
+    
+    ctx.restore()
   }
 
   function drawNebula() {
     const time = Date.now() * 0.001
     ctx.save()
-    ctx.globalAlpha = 0.1
+    ctx.globalAlpha = 0.15
 
-    for (let i = 0; i < 3; i++) {
-      const x = centerX + Math.sin(time + i * 2) * 100
-      const y = centerY + Math.cos(time + i * 2) * 100
-      const gradient = ctx.createRadialGradient(x, y, 0, x, y, 200)
-
-      if (State.phase === 3) {
-        gradient.addColorStop(0, i % 2 === 0 ? "rgba(0, 255, 255, 0.3)" : "rgba(255, 0, 255, 0.3)")
-      } else {
-        gradient.addColorStop(0, `hsla(${(time * 50 + i * 120) % 360}, 80%, 50%, 0.3)`)
+    if (State.phase === 2) {
+      // 青铜阶段：金色星云
+      for (let i = 0; i < 3; i++) {
+        const x = centerX + Math.sin(time + i * 2) * 150
+        const y = centerY + Math.cos(time + i * 2) * 150
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 250)
+        gradient.addColorStop(0, "rgba(255, 215, 0, 0.5)")
+        gradient.addColorStop(0.5, "rgba(205, 127, 50, 0.2)")
+        gradient.addColorStop(1, "transparent")
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, width, height)
       }
-      gradient.addColorStop(1, "transparent")
-
-      ctx.fillStyle = gradient
-      ctx.fillRect(0, 0, width, height)
+    } else if (State.phase === 3) {
+      // 赛博阶段：青紫色星云
+      for (let i = 0; i < 3; i++) {
+        const x = centerX + Math.sin(time + i * 2) * 100
+        const y = centerY + Math.cos(time + i * 2) * 100
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 200)
+        gradient.addColorStop(0, i % 2 === 0 ? "rgba(0, 255, 255, 0.3)" : "rgba(255, 0, 255, 0.3)")
+        gradient.addColorStop(1, "transparent")
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, width, height)
+      }
+    } else if (State.phase === 4) {
+      // 宇宙阶段：彩虹色星云
+      for (let i = 0; i < 3; i++) {
+        const x = centerX + Math.sin(time + i * 2) * 100
+        const y = centerY + Math.cos(time + i * 2) * 100
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 200)
+        gradient.addColorStop(0, `hsla(${(time * 50 + i * 120) % 360}, 80%, 50%, 0.3)`)
+        gradient.addColorStop(1, "transparent")
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, width, height)
+      }
+    } else if (State.phase === 6) {
+      // 创世阶段：多彩星云
+      for (let i = 0; i < 5; i++) {
+        const x = centerX + Math.sin(time * 0.5 + i * 1.2) * 200
+        const y = centerY + Math.cos(time * 0.5 + i * 1.2) * 200
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, 300)
+        gradient.addColorStop(0, `hsla(${(time * 60 + i * 72) % 360}, 100%, 60%, 0.4)`)
+        gradient.addColorStop(1, "transparent")
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, width, height)
+      }
     }
 
     ctx.restore()
@@ -640,6 +830,26 @@
       case 6:
         drawCosmicSourceMokugyo()
         break
+    }
+
+    // 阶段转换时的闪光效果
+    if (State.phaseTransitionIntensity > 0) {
+      ctx.save()
+      ctx.globalAlpha = State.phaseTransitionIntensity * 0.6
+      
+      const colors = ["", "#8B4513", "#FFD700", "#00FFFF", "#9400D3", "#FDB813", "#FFFFFF"]
+      const color = colors[State.phase]
+      
+      const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, mokugyoRadius * 1.5)
+      gradient.addColorStop(0, color)
+      gradient.addColorStop(1, "transparent")
+      
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.arc(0, 0, mokugyoRadius * 1.5, 0, Math.PI * 2)
+      ctx.fill()
+      
+      ctx.restore()
     }
 
     ctx.restore()
@@ -1238,6 +1448,7 @@
 
     if (newPhase !== State.phase) {
       State.phase = newPhase
+      State.phaseTransitionIntensity = 1
       updateCounter()
     }
 
@@ -1316,6 +1527,7 @@
     drawParticles()
 
     State.glowIntensity *= 0.95
+    State.phaseTransitionIntensity *= 0.92
 
     requestAnimationFrame(gameLoop)
   }
