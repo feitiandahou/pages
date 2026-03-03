@@ -1,10 +1,329 @@
 <!DOCTYPE html>
-<html>
-<head><title>我的页面合集</title></head>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XBC | 算法炼金术与数字艺术</title>
+<style>
+:root {
+    --primary: #2563eb;
+    --accent: #06b6d4;
+    --bg: #f5f9ff;
+    --surface: rgba(255,255,255,0.7);
+    --text: #0f172a;
+    --muted: #64748b;
+    --radius: 24px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(37,99,235,.15), transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(6,182,212,.15), transparent 40%),
+        var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+}
+
+/* 轻量动态背景 */
+#bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    opacity: .4;
+    mix-blend-mode: overlay;
+}
+
+/* 容器 */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+
+/* ===== Bento Grid ===== */
+.bento {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    perspective: 1000px;
+}
+
+.bento-card {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    border: 1px solid rgba(255,255,255,.6);
+    transition: .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    grid-column: span 6;
+}
+
+.bento-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(255,255,255,.6), transparent);
+    transform: translateX(-100%);
+    transition: .8s;
+}
+
+.bento-card::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: calc(var(--radius) + 2px);
+    background: linear-gradient(45deg, transparent, var(--primary), transparent, var(--accent), transparent);
+    background-size: 400% 400%;
+    z-index: -1;
+    animation: borderGlow 3s linear infinite;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.bento-card:hover::before {
+    transform: translateX(100%);
+}
+
+.bento-card:hover::after {
+    opacity: 0.7;
+}
+
+.bento-card:hover {
+    transform: translateY(-6px) rotateX(5deg) rotateY(5deg);
+    box-shadow: 0 20px 40px rgba(37,99,235,.15);
+}
+
+.card-title {
+    font-size: 1.5rem;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(120deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+}
+
+.card-index {
+    font-size: .7rem;
+    color: var(--accent);
+    letter-spacing: .2em;
+}
+
+/* 卡片链接样式 */
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    height: 100%;
+}
+
+/* ===== Links ===== */
+.hyper-links {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+}
+
+.nav-link {
+    text-decoration: none;
+    font-size: 0.9rem;
+    color: var(--muted);
+    position: relative;
+    transition: .3s;
+    padding: 0.4rem 1.2rem;
+    border-radius: 12px;
+    background: var(--surface);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,.6);
+    display: flex;
+    align-items: center;
+}
+
+.nav-link:hover {
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(37,99,235,.1);
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    bottom: -4px;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    transition: .4s;
+}
+
+.nav-link:hover::after {
+    width: calc(100% - 2rem);
+}
+
+/* ===== Feedback ===== */
+.feedback-box {
+    background: var(--surface);
+    backdrop-filter: blur(20px);
+    border-radius: var(--radius);
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.feedback-box h2 {
+    font-size: 1.5rem;
+}
+
+.feedback-box p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+input, textarea {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,.08);
+    background: white;
+    font-size: 0.9rem;
+    outline: none;
+    transition: .3s;
+}
+
+input:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+textarea {
+    margin-top: 0.8rem;
+}
+
+.submit-btn {
+    margin-top: 1rem;
+    padding: .6rem 1.5rem;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .3s;
+    font-size: 0.9rem;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37,99,235,.3);
+}
+
+/* ===== Footer ===== */
+.contact-bar {
+    font-size: .85rem;
+    color: var(--muted);
+    border-top: 1px solid rgba(0,0,0,.05);
+    padding-top: 2rem;
+    text-align: center;
+}
+
+/* ===== VX Link ===== */
+.vxlink {
+    display: block;
+    color: #0066cc;
+    text-decoration: none;
+    text-align: center;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+    margin-bottom: 2rem;
+}
+
+.vxlink:hover {
+    background-color: #f0f7ff;
+}
+
+/* ===== Animations ===== */
+@keyframes borderGlow {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px) {
+    .bento-card { grid-column: span 12; }
+    .feedback-box { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
 <body>
-    <h1>欢迎来到我的页面</h1>
-    <ul>
-        <li><a href="./muyu/">赛博木鱼 (进化版)</a></li>
-    </ul>
+<canvas id="bg-canvas"></canvas>
+
+<main class="container">
+    <section class="bento">
+        <div class="bento-card">
+            <a href="./muyu/" class="card-link">
+                <div class="card-index">01</div>
+                <h3 class="card-title">赛博木鱼 PRO</h3>
+                <p style="color:var(--muted);margin-top:0.8rem;">
+                    沉浸式数字解压，敲木鱼解锁神秘模型 + 隐藏彩蛋。
+                </p>
+            </a>
+        </div>
+        <div class="bento-card">
+            <a href="#" class="card-link">
+                <div class="card-index">02</div>
+                <h3 class="card-title">等待揭晓</h3>
+                <p style="color:var(--muted);margin-top:0.8rem;">
+                    这个项目还在赶来的路上，敬请期待。
+                </p>
+            </a>
+        </div>
+    </section>
+
+    <section class="hyper-links">
+        <a href="https://space.bilibili.com/3690979599059128?spm_id_from=333.1387.0.0" class="nav-link">B站</a>
+        <a href="https://v.douyin.com/sag5ft9leiI/" class="nav-link">抖音</a>
+        <a href="https://www.xiaohongshu.com/user/profile/66776b330000000003031a2b" class="nav-link">小红书</a>
+    </section>
+    
+    <p class="vxlink">vx: xiaobaicai-space</p>
+
+    <section class="feedback-box">
+        <div>
+            <h2>反馈</h2>
+            <p style="margin-top:0.8rem;">
+                感谢你的每一条反馈，建议或想法。
+            </p>
+        </div>
+
+        <div>
+            <input type="text" placeholder="你的称呼">
+            <textarea rows="3" placeholder="你的想法"></textarea>
+            <button class="submit-btn">发送</button>
+        </div>
+    </section>
+
+    <footer class="contact-bar">
+        © 2026 XIAOBAICAI STUDIO
+    </footer>
+</main>
 </body>
 </html>
