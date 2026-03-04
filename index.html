@@ -259,6 +259,7 @@ textarea {
     background-color: #f0f7ff;
 }
 
+
 /* ===== Animations ===== */
 @keyframes borderGlow {
     0% { background-position: 0% 50%; }
@@ -290,21 +291,13 @@ textarea {
         <div class="bento-card">
             <a href="#" class="card-link">
                 <div class="card-index">02</div>
-                <h3 class="card-title">等待揭晓</h3>
+                <h3 class="card-title">心灵水晶球</h3>
                 <p style="color:var(--muted);margin-top:0.8rem;">
-                    这个项目还在赶来的路上，敬请期待。
+                    所得皆所期，所求皆所愿，所行皆坦途。
                 </p>
             </a>
         </div>
     </section>
-
-    <section class="hyper-links">
-        <a href="https://space.bilibili.com/3690979599059128?spm_id_from=333.1387.0.0" class="nav-link">B站</a>
-        <a href="https://v.douyin.com/sag5ft9leiI/" class="nav-link">抖音</a>
-        <a href="https://www.xiaohongshu.com/user/profile/66776b330000000003031a2b" class="nav-link">小红书</a>
-    </section>
-    
-    <p class="vxlink">vx: xiaobaicai-space</p>
 
     <section class="feedback-box">
         <div>
@@ -315,9 +308,12 @@ textarea {
         </div>
 
         <div>
-            <input type="text" placeholder="你的称呼">
-            <textarea rows="3" placeholder="你的想法"></textarea>
-            <button class="submit-btn">发送</button>
+            <form id="feedback-form">
+                <input id="nickname" name="nickname" type="text" placeholder="你的称呼（可选）">
+                <textarea id="feedback" name="feedback" rows="3" placeholder="你的想法（必填）" required></textarea>
+                <button id="feedback-submit" class="submit-btn" type="submit">发送</button>
+                <div id="feedback-status" style="margin-top:0.6rem;font-size:0.8rem;color:var(--muted);"></div>
+            </form>
         </div>
     </section>
 
@@ -325,5 +321,55 @@ textarea {
         © 2026 XIAOBAICAI STUDIO
     </footer>
 </main>
+
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const supabaseUrl = 'https://yfbtgfcektmiieterley.supabase.co';
+    const supabaseKey = 'sb_publishable_mhYEO4xErDj8yx04k4j2Eg_3UebuKTJ';
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const form = document.getElementById('feedback-form');
+    const nicknameInput = document.getElementById('nickname');
+    const feedbackInput = document.getElementById('feedback');
+    const submitBtn = document.getElementById('feedback-submit');
+    const statusEl = document.getElementById('feedback-status');
+
+    if (form && nicknameInput && feedbackInput && submitBtn && statusEl) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const nickname = nicknameInput.value.trim() || null;
+            const content = feedbackInput.value.trim();
+
+            if (!content) {
+                statusEl.textContent = '请先写点什么再发送～';
+                statusEl.style.color = '#dc2626';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '发送中...';
+            statusEl.textContent = '';
+
+            const { error } = await supabase
+                .from('feedback')
+                .insert([{ nickname, content }]);
+
+            if (error) {
+                console.error(error);
+                statusEl.textContent = '发送失败，请稍后再试或检查网络连接。';
+                statusEl.style.color = '#dc2626';
+            } else {
+                form.reset();
+                statusEl.textContent = '已收到，感谢你的反馈！';
+                statusEl.style.color = 'var(--primary)';
+            }
+
+            submitBtn.disabled = false;
+            submitBtn.textContent = '发送';
+        });
+    }
+</script>
 </body>
 </html>
