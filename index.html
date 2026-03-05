@@ -6,12 +6,13 @@
 <title>XBC | 算法炼金术与数字艺术</title>
 <style>
 :root {
-    --primary: #2563eb;
-    --accent: #06b6d4;
-    --bg: #f5f9ff;
-    --surface: rgba(255,255,255,0.7);
-    --text: #0f172a;
-    --muted: #64748b;
+    --primary: #00ffc3;
+    --secondary: #00b8ff;
+    --bg-dark: #0a0a12;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #ffffff;
+    --text-muted: #a0a0b0;
     --radius: 24px;
 }
 
@@ -23,21 +24,21 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
-    background:
-        radial-gradient(circle at 20% 30%, rgba(37,99,235,.15), transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(6,182,212,.15), transparent 40%),
-        var(--bg);
-    color: var(--text);
+    background-color: var(--bg-dark);
+    color: var(--text-main);
     overflow-x: hidden;
+    min-height: 100vh;
+    position: relative;
 }
 
-/* 轻量动态背景 */
-#bg-canvas {
+#canvas-bg {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: -1;
-    opacity: .4;
-    mix-blend-mode: overlay;
+    background: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #000000 100%);
 }
 
 /* 容器 */
@@ -57,16 +58,17 @@ body {
 }
 
 .bento-card {
-    background: var(--surface);
+    background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border-radius: var(--radius);
     padding: 1.5rem;
-    border: 1px solid rgba(255,255,255,.6);
+    border: 1px solid var(--glass-border);
     transition: .4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     overflow: hidden;
     transform-style: preserve-3d;
     grid-column: span 6;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 .bento-card::before {
@@ -107,7 +109,7 @@ body {
 .card-title {
     font-size: 1.5rem;
     margin-bottom: 0.8rem;
-    background: linear-gradient(120deg, var(--primary), var(--accent));
+    background: linear-gradient(120deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -116,7 +118,7 @@ body {
 
 .card-index {
     font-size: .7rem;
-    color: var(--accent);
+    color: var(--secondary);
     letter-spacing: .2em;
 }
 
@@ -140,14 +142,14 @@ body {
 .nav-link {
     text-decoration: none;
     font-size: 0.9rem;
-    color: var(--muted);
+    color: var(--text-muted);
     position: relative;
     transition: .3s;
     padding: 0.4rem 1.2rem;
     border-radius: 12px;
-    background: var(--surface);
+    background: var(--glass-bg);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,.6);
+    border: 1px solid var(--glass-border);
     display: flex;
     align-items: center;
 }
@@ -155,8 +157,8 @@ body {
 .nav-link:hover {
     color: white;
     transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(37,99,235,.1);
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    box-shadow: 0 4px 12px rgba(0, 255, 195, 0.3);
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
 }
 
 .nav-link::after {
@@ -166,7 +168,7 @@ body {
     bottom: -4px;
     width: 0;
     height: 2px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
     transition: .4s;
 }
 
@@ -176,7 +178,7 @@ body {
 
 /* ===== Feedback ===== */
 .feedback-box {
-    background: var(--surface);
+    background: var(--glass-bg);
     backdrop-filter: blur(20px);
     border-radius: var(--radius);
     padding: 2rem;
@@ -184,6 +186,8 @@ body {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     margin-bottom: 3rem;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 .feedback-box h2 {
@@ -193,15 +197,16 @@ body {
 .feedback-box p {
     font-size: 0.9rem;
     line-height: 1.5;
-    color: var(--muted);
+    color: var(--text-muted);
 }
 
 input, textarea {
     width: 100%;
     padding: 0.8rem;
     border-radius: 12px;
-    border: 1px solid rgba(0,0,0,.08);
-    background: white;
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-main);
     font-size: 0.9rem;
     outline: none;
     transition: .3s;
@@ -209,7 +214,7 @@ input, textarea {
 
 input:focus, textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+    box-shadow: 0 0 0 3px rgba(0, 255, 195, 0.15);
 }
 
 textarea {
@@ -221,8 +226,8 @@ textarea {
     padding: .6rem 1.5rem;
     border: none;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
-    color: white;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    color: #000;
     font-weight: 600;
     cursor: pointer;
     transition: .3s;
@@ -231,16 +236,35 @@ textarea {
 
 .submit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(37,99,235,.3);
+    box-shadow: 0 4px 12px rgba(0, 255, 195, 0.4);
 }
 
 /* ===== Footer ===== */
 .contact-bar {
     font-size: .85rem;
-    color: var(--muted);
-    border-top: 1px solid rgba(0,0,0,.05);
+    color: var(--text-muted);
+    border-top: 1px solid var(--glass-border);
     padding-top: 2rem;
     text-align: center;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.contact-bar p {
+    margin: 0.5rem 0;
+}
+
+.contact-bar a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.contact-bar a:hover {
+    color: var(--secondary);
 }
 
 /* ===== VX Link ===== */
@@ -275,7 +299,7 @@ textarea {
 </head>
 
 <body>
-<canvas id="bg-canvas"></canvas>
+<canvas id="canvas-bg"></canvas>
 
 <main class="container">
     <section class="bento">
@@ -318,9 +342,105 @@ textarea {
     </section>
 
     <footer class="contact-bar">
-        © 2026 XIAOBAICAI STUDIO
-    </footer>
+            <p>vx：xiaobaicai-space</p>
+            <p>&copy; 2026 小白菜,非商业用途</p>
+	    <p>浙ICP备2026011633号-2 | <img src="https://beian.mps.gov.cn/web/assets/logo01.6189a29f.png" style="height: 1em; vertical-align: middle;"> 浙公网安备33010802014335号</p>
+        </footer>
 </main>
+
+<script>
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    
+    let width, height;
+    let particles = [];
+    
+    const properties = {
+        bgColor: 'rgba(17, 17, 19, 1)',
+        particleColor: 'rgba(0, 255, 195, 0.5)',
+        particleRadius: 3,
+        particleCount: 60,
+        lineLength: 150,
+        particleSpeed: 0.5,
+    };
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    
+    class Particle {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.velocityX = Math.random() * (properties.particleSpeed * 2) - properties.particleSpeed;
+            this.velocityY = Math.random() * (properties.particleSpeed * 2) - properties.particleSpeed;
+            this.life = Math.random() * 100;
+        }
+
+        position() {
+            this.x + this.velocityX > width && this.velocityX > 0 || this.x + this.velocityX < 0 && this.velocityX < 0 ? this.velocityX *= -1 : this.velocityX;
+            this.y + this.velocityY > height && this.velocityY > 0 || this.y + this.velocityY < 0 && this.velocityY < 0 ? this.velocityY *= -1 : this.velocityY;
+            this.x += this.velocityX;
+            this.y += this.velocityY;
+        }
+
+        reDraw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, properties.particleRadius, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fillStyle = properties.particleColor;
+            ctx.fill();
+        }
+    }
+
+    function initParticles() {
+        particles = [];
+        const count = window.innerWidth < 768 ? 30 : properties.particleCount;
+        for (let i = 0; i < count; i++) {
+            particles.push(new Particle());
+        }
+    }
+
+    function drawLines() {
+        let x1, y1, x2, y2, length, opacity;
+        for (let i in particles) {
+            for (let j in particles) {
+                x1 = particles[i].x;
+                y1 = particles[i].y;
+                x2 = particles[j].x;
+                y2 = particles[j].y;
+                length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                
+                if (length < properties.lineLength) {
+                    opacity = 1 - length / properties.lineLength;
+                    ctx.lineWidth = '0.5';
+                    ctx.strokeStyle = `rgba(0, 184, 255, ${opacity})`;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function loop() {
+        ctx.clearRect(0, 0, width, height);
+        for (let i in particles) {
+            particles[i].position();
+            particles[i].reDraw();
+        }
+        drawLines();
+        requestAnimationFrame(loop);
+    }
+
+    resize();
+    initParticles();
+    loop();
+    window.onresize = () => { resize(); initParticles(); };
+</script>
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
